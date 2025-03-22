@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+{% load static %}
+{% load dict_tags %}
+<head>
+    <title>Свара</title>
+    <link rel="stylesheet" href="{% static 'styles.css' %}">
+</head>
+<body>
+    <h1>Игра Свара</h1>
+    {% for hand in hands %}
+        <h2>{{ hand.player.name }}</h2>
+        <div>
+            {% for card in hand.cards.all %}
+                <img src="{% static card.rank|add:card.suit|add:'.png' %}" alt="{{ card }}">
+            {% endfor %}
+            <p>Точки: {{ scores|get_item:hand.player.name }}</p> <!-- Променено -->
+        </div>
+    {% endfor %}
+    {% if winner %}
+        <h3>Победител: {{ winner }} с {{ scores|get_item:winner }} точки</h3> <!-- Променено -->
+    {% endif %}
+    <a href="{% url 'home' %}">Нова игра</a> <!-- Променено да връща към home -->
+</body>
+</html>
