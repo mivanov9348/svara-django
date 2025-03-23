@@ -3,42 +3,89 @@
 <head>
     {% load static %}
     <title>Свара - Начало</title>
-    <link rel="stylesheet" href="{% static 'styles.css' %}">
     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(to bottom, #1a3c34, #2e6b5e);
+            color: #fff;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .home-container {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            max-width: 400px;
+            margin: 50px auto;
+        }
+
+        h1 {
             text-align: center;
-            margin-top: 50px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            margin-bottom: 30px;
         }
-        select, button {
+
+        label {
+            font-size: 1.3em;
+            color: #ffd700;
+            display: block;
+            margin-bottom: 15px;
+        }
+
+        select {
             padding: 10px;
-            font-size: 16px;
-            margin: 10px;
+            font-size: 1.1em;
+            border-radius: 5px;
+            border: 2px solid #ffd700;
+            background: #fff;
+            color: #333;
+            width: 100px;
+            cursor: pointer;
+            transition: border-color 0.3s;
         }
+
+        select:hover,
+        select:focus {
+            border-color: #00ff00;
+            outline: none;
+        }
+
         button {
             background-color: #4CAF50;
             color: white;
+            padding: 12px 25px;
             border: none;
+            border-radius: 5px;
+            font-size: 1.2em;
             cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s;
         }
+
         button:hover {
             background-color: #45a049;
+            transform: scale(1.05);
         }
     </style>
 </head>
 <body>
-    <h1>Добре дошли в Свара!</h1>
-    <form method="POST" action="{% url 'start_game' %}">
-        {% csrf_token %}
-        <label for="players">Изберете брой играчи:</label>
-        <select name="players" id="players">
-            <option value="2">2</option>
-            <option value="3">3</option>
-            <option value="4">4</option>
-            <option value="5">5</option>
-        </select>
-        <br>
-        <button type="submit">Нова игра</button>
-    </form>
+    <div class="home-container">
+        <h1>Добре дошли в Свара!</h1>
+        <form method="POST" action="{% url 'start_game' %}">
+            {% csrf_token %}
+            <label for="players">Изберете брой играчи:</label>
+            <select name="players" id="players">
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+            </select>
+            <br>
+            <button type="submit">Нова игра</button>
+        </form>
+    </div>
 </body>
 </html>
