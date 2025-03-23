@@ -10,7 +10,6 @@ class Card(models.Model):
     def __str__(self):
         return f"{self.rank}{self.suit}"
 
-
 class Player(models.Model):
     name = models.CharField(max_length=50)
     chips = models.IntegerField(default=100)
@@ -18,14 +17,20 @@ class Player(models.Model):
     def __str__(self):
         return self.name
 
-
 class Game(models.Model):
+    STAGE_CHOICES = [
+        ('deal', 'Раздаване'),
+        ('betting', 'Залагане'),
+        ('showdown', 'Показване'),
+    ]
     players = models.ManyToManyField(Player, through='PlayerHand')
     pot = models.IntegerField(default=0)
     dealer = models.ForeignKey(Player, on_delete=models.SET_NULL, null=True, related_name='dealt_games')
+    stage = models.CharField(max_length=10, choices=STAGE_CHOICES, default='deal')
 
 class PlayerHand(models.Model):
     player = models.ForeignKey(Player, on_delete=models.CASCADE)
     game = models.ForeignKey(Game, on_delete=models.CASCADE)
     cards = models.ManyToManyField(Card)
     bet = models.IntegerField(default=0)
+    is_active = models.BooleanField(default=True)  
