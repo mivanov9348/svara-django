@@ -19,18 +19,22 @@ class Player(models.Model):
 
 class Game(models.Model):
     STAGE_CHOICES = [
-        ('deal', 'Раздаване'),
+        ('pre_bet', 'Залагане на тъмно'),
+        ('pre_bet_computer', 'Компютър залага на тъмно'),
         ('betting', 'Залагане'),
         ('showdown', 'Показване'),
+        ('svara', 'Свара'),
     ]
     players = models.ManyToManyField(Player, through='PlayerHand')
     pot = models.IntegerField(default=0)
+    dark_bet = models.IntegerField(default=0)
+    svara_pot = models.IntegerField(default=0)
     dealer = models.ForeignKey(Player, on_delete=models.SET_NULL, null=True, related_name='dealt_games')
-    stage = models.CharField(max_length=10, choices=STAGE_CHOICES, default='deal')
+    stage = models.CharField(max_length=20, choices=STAGE_CHOICES, default='pre_bet')
 
 class PlayerHand(models.Model):
     player = models.ForeignKey(Player, on_delete=models.CASCADE)
     game = models.ForeignKey(Game, on_delete=models.CASCADE)
     cards = models.ManyToManyField(Card)
     bet = models.IntegerField(default=0)
-    is_active = models.BooleanField(default=True)  
+    is_active = models.BooleanField(default=True)

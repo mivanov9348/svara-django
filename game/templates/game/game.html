@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Свара</title>
+    <title>Свара: Ти срещу Компютъра</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -9,129 +9,130 @@
             margin: 0;
             padding: 20px;
             color: #333;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
         }
         h1 {
             text-align: center;
             color: #2c3e50;
             font-size: 2.5em;
-            margin-bottom: 20px;
         }
-        h2 {
-            color: #e74c3c;
-            font-size: 1.8em;
-            margin-top: 20px;
-        }
-        p {
-            font-size: 1.2em;
-            margin: 10px 0;
-        }
-        .stage-container {
-            max-width: 800px;
-            margin: 0 auto;
+        .player {
             background-color: #fff;
-            padding: 20px;
+            padding: 15px;
             border-radius: 10px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            margin: 20px auto;
+            max-width: 400px;
         }
-        .player-hand {
-            padding: 15px;
+        .computer { border sacrificing-top: 5px solid #e74c3c; }
+        .you { border-bottom: 5px solid #2ecc71; }
+        .player.inactive { opacity: 0.6; }
+        .cards {
+            font-size: 1.2em;
+            color: #8e44ad;
             margin: 10px 0;
-            background-color: #ecf0f1;
-            border-left: 5px solid #3498db;
-            border-radius: 5px;
         }
-        .player-hand.inactive {
-            background-color: #bdc3c7;
-            border-left-color: #7f8c8d;
+        .chips {
+            color: #3498db;
+            font-weight: bold;
+        }
+        .score {
+            font-size: 1.1em;
+            color: #e67e22;
+            margin: 5px 0;
         }
         form {
-            display: inline-block;
             margin: 10px 0;
+            text-align: center;
         }
         input[type="number"] {
             padding: 8px;
-            font-size: 1em;
+            width: 80px;
             border: 1px solid #ccc;
             border-radius: 5px;
-            width: 100px;
         }
         button {
-            padding: 10px 20px;
-            font-size: 1em;
+            padding: 8px 15px;
             color: #fff;
             background-color: #3498db;
             border: none;
             border-radius: 5px;
             cursor: pointer;
-            transition: background-color 0.3s;
         }
-        button:hover {
-            background-color: #2980b9;
-        }
-        button[name="action"][value="fold"] {
-            background-color: #e74c3c;
-        }
-        button[name="action"][value="fold"]:hover {
-            background-color: #c0392b;
+        button:hover { background-color: #2980b9; }
+        button[name="action"][value="fold"] { background-color: #e74c3c; }
+        button[name="action"][value="fold"]:hover { background-color: #c0392b; }
+        .pot {
+            text-align: center;
+            font-size: 1.2em;
+            margin: 20px 0;
         }
         .winner {
-            font-weight: bold;
+            text-align: center;
             color: #27ae60;
-            font-size: 1.3em;
-            margin-top: 20px;
-        }
-        .cards {
-            font-size: 1.2em;
-            color: #8e44ad;
+            font-size: 1.5em;
+            font-weight: bold;
         }
     </style>
 </head>
 <body>
-    <h1>Игра: {{ game.id }} - {{ game.get_stage_display }}</h1>
+    <h1>Свара: Ти срещу Компютъра</h1>
 
-    <div class="stage-container">
-        {% if game.stage == 'deal' %}
-            <p>Картите са раздадени. Готови ли сте да започнете залагането?</p>
+    <div class="player computer {% if not computer_hand.is_active %}inactive{% endif %}">
+        <h2>Компютър</h2>
+        <p class="chips">Чипове: {{ computer_hand.player.chips }}</p>
+        {% if game.stage == 'showdown' or game.stage == 'svara' %}
+            <p class="cards">Карти: {% for card in computer_hand.cards.all %}{{ card }} {% endfor %}</p>
+            <p class="score">Точки: {{ computer_score }}</p>
+        {% else %}
+            <p class="cards">Карти: [Скрити]</p>
+        {% endif %}
+        <p>Текущ залог: {{ computer_hand.bet }}</p>
+    </div>
+
+    <div class="pot">Пот: {{ game.pot }} чипа {% if dark_bet > 0 %}(Залог на тъмно: {{ dark_bet }}){% endif %}</div>
+
+    <div class="player you {% if not your_hand.is_active %}inactive{% endif %}">
+        <h2>Ти</h2>
+        <p class="chips">Чипове: {{ your_hand.player.chips }}</p>
+        <p class="cards">Карти: {% if game.stage != 'pre_bet' and game.stage != 'pre_bet_computer' %}{% for card in your_hand.cards.all %}{{ card }} {% endfor %}{% else %}[Скрити]{% endif %}</p>
+        {% if game.stage == 'showdown' or game.stage == 'svara' %}
+            <p class="score">Точки: {{ your_score }}</p>
+        {% endif %}
+        <p>Текущ залог: {{ your_hand.bet }}</p>
+
+        {% if game.stage == 'pre_bet' %}
             <form method="post">
                 {% csrf_token %}
-                <button type="submit">Започни залагане</button>
+                <input type="number" name="bet" min="0" max="{{ your_hand.player.chips }}" placeholder="Залог на тъмно" required>
+                <button type="submit" name="action" value="dark_bet">Заложи на тъмно</button>
+                <button type="submit" name="action" value="skip">Продължи</button>
             </form>
-
-        {% elif game.stage == 'betting' %}
-            <h2>Залагане</h2>
-            {% for hand in hands %}
-                <div class="player-hand {% if not hand.is_active %}inactive{% endif %}">
-                    {% if hand.is_active %}
-                        <p>{{ hand.player.name }} (Чипове: {{ hand.player.chips }}) - Текущ залог: {{ hand.bet }}</p>
-                        <form method="post">
-                            {% csrf_token %}
-                            <input type="hidden" name="player_id" value="{{ hand.player.id }}">
-                            <input type="number" name="bet" min="0" max="{{ hand.player.chips }}" placeholder="Залог">
-                            <button type="submit" name="action" value="bet">Заложи</button>
-                            <button type="submit" name="action" value="fold">Откажи се</button>
-                        </form>
-                    {% else %}
-                        <p>{{ hand.player.name }} - Отказал се</p>
-                    {% endif %}
-                </div>
-            {% endfor %}
-
-        {% elif game.stage == 'showdown' %}
-            <h2>Резултати</h2>
-            {% for hand in hands %}
-                <div class="player-hand">
-                    <p>{{ hand.player.name }}:
-                        <span class="cards">{% for card in hand.cards.all %}{{ card }} {% endfor %}</span>
-                        - Точки: {{ scores|dictsort:hand.player.name|first|last }}
-                    </p>
-                </div>
-            {% endfor %}
-            {% if winner %}
-                <p class="winner">Победител: {{ winner }} (Взима пота: {{ game.pot }})</p>
-            {% else %}
-                <p>Няма победител</p>
-            {% endif %}
+        {% elif game.stage == 'betting' and your_hand.is_active %}
+            <form method="post">
+                {% csrf_token %}
+                <input type="number" name="bet" min="{{ min_bet }}" max="{{ your_hand.player.chips }}" placeholder="Залог" required>
+                <button type="submit" name="action" value="bet">Заложи</button>
+                <button type="submit" name="action" value="fold">Откажи се</button>
+            </form>
         {% endif %}
     </div>
+
+    {% if game.stage == 'showdown' and not svara %}
+        {% if winner %}
+            <p class="winner">Победител: {{ winner }} (Взима {{ game.pot }} чипа)</p>
+        {% else %}
+            <p class="winner">Равенство!</p>
+        {% endif %}
+    {% elif game.stage == 'svara' %}
+        <p class="winner">Свара! Мiza за участие: {{ svara_entry_fee }} чипа</p>
+        <form method="post" style="text-align: center;">
+            {% csrf_token %}
+            <button type="submit" name="action" value="join_svara">Участвай в сварката</button>
+        </form>
+    {% endif %}
 </body>
 </html>
