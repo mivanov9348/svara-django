@@ -1,14 +1,15 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Свара: Ти срещу Компютъра</title>
+    <title>Svara: You vs Computer</title>
+    {% load static %}
     <style>
         body {
             font-family: Arial, sans-serif;
-            background-color: #f4f4f4;
+            background-color: #1a1a1a;
             margin: 0;
             padding: 20px;
-            color: #333;
+            color: #fff;
             min-height: 100vh;
             display: flex;
             flex-direction: column;
@@ -16,123 +17,233 @@
         }
         h1 {
             text-align: center;
-            color: #2c3e50;
-            font-size: 2.5em;
+            color: #ecf0f1;
+            font-size: 3em;
+            margin: 20px 0;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
         }
         .player {
-            background-color: #fff;
-            padding: 15px;
-            border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            margin: 20px auto;
-            max-width: 400px;
+            background-color: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+            max-width: 600px;
+            backdrop-filter: blur(5px);
+            text-align: center;
         }
-        .computer { border sacrificing-top: 5px solid #e74c3c; }
-        .you { border-bottom: 5px solid #2ecc71; }
-        .player.inactive { opacity: 0.6; }
+        .computer {
+            border-top: 6px solid #e74c3c;
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            max-width: 600px;
+        }
+        .you {
+            border-bottom: 6px solid #2ecc71;
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            max-width: 600px;
+        }
+        .player.inactive { opacity: 0.5; }
         .cards {
-            font-size: 1.2em;
-            color: #8e44ad;
-            margin: 10px 0;
+            font-size: 1.5em;
+            color: #9b59b6;
+            margin: 15px 0;
+        }
+        .cards img {
+            width: 100px;
+            height: auto;
+            margin: 0 5px;
+            transition: transform 0.3s ease;
+        }
+        .cards img:hover {
+            transform: scale(1.1);
         }
         .chips {
             color: #3498db;
             font-weight: bold;
+            font-size: 1.3em;
+            margin: 10px 0;
         }
         .score {
-            font-size: 1.1em;
+            font-size: 1.2em;
             color: #e67e22;
-            margin: 5px 0;
-        }
-        form {
             margin: 10px 0;
-            text-align: center;
         }
-        input[type="number"] {
+        .pot {
+            text-align: center;
+            font-size: 1.5em;
+            color: #f1c40f;
+            margin: 20px 0;
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        .winner {
+            text-align: center;
+            color: #27ae60;
+            font-size: 2em;
+            font-weight: bold;
+            margin: 20px 0;
+            text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.5);
+            position: absolute;
+            top: 60%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        .game-container {
+            flex-grow: 1;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        .mini-menu {
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            border-radius: 10px;
+            margin-top: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+        }
+        .mini-menu input[type="number"] {
             padding: 8px;
-            width: 80px;
+            width: 100px;
             border: 1px solid #ccc;
             border-radius: 5px;
+            background-color: #fff;
+            color: #333;
         }
-        button {
-            padding: 8px 15px;
+        .mini-menu button {
+            padding: 10px 20px;
             color: #fff;
             background-color: #3498db;
             border: none;
             border-radius: 5px;
             cursor: pointer;
+            transition: background-color 0.3s ease;
         }
-        button:hover { background-color: #2980b9; }
-        button[name="action"][value="fold"] { background-color: #e74c3c; }
-        button[name="action"][value="fold"]:hover { background-color: #c0392b; }
-        .pot {
-            text-align: center;
-            font-size: 1.2em;
-            margin: 20px 0;
-        }
-        .winner {
-            text-align: center;
-            color: #27ae60;
-            font-size: 1.5em;
-            font-weight: bold;
-        }
+        .mini-menu button:hover { background-color: #2980b9; }
+        .mini-menu button[name="action"][value="fold"] { background-color: #e74c3c; }
+        .mini-menu button[name="action"][value="fold"]:hover { background-color: #c0392b; }
     </style>
 </head>
 <body>
-    <h1>Свара: Ти срещу Компютъра</h1>
+    <div class="game-container">
+        <div class="player computer {% if not computer_hand.is_active %}inactive{% endif %}">
+            <h2>Computer</h2>
+            <p class="chips">Chips: {{ computer_hand.player.chips }}</p>
+            {% if game.stage == 'showdown' or game.stage == 'svara' %}
+                <p class="cards">
+                    Cards:
+                    {% for card in computer_hand.cards.all %}
+                        {% if card.suit == '♠' %}
+                            {% with suit_code='s' %}
+                                <img src="{% static 'cards/'|add:card.rank|add:suit_code|lower|add:'.png' %}" alt="{{ card }}">
+                            {% endwith %}
+                        {% elif card.suit == '♥' %}
+                            {% with suit_code='h' %}
+                                <img src="{% static 'cards/'|add:card.rank|add:suit_code|lower|add:'.png' %}" alt="{{ card }}">
+                            {% endwith %}
+                        {% elif card.suit == '♦' %}
+                            {% with suit_code='d' %}
+                                <img src="{% static 'cards/'|add:card.rank|add:suit_code|lower|add:'.png' %}" alt="{{ card }}">
+                            {% endwith %}
+                        {% elif card.suit == '♣' %}
+                            {% with suit_code='c' %}
+                                <img src="{% static 'cards/'|add:card.rank|add:suit_code|lower|add:'.png' %}" alt="{{ card }}">
+                            {% endwith %}
+                        {% endif %}
+                    {% endfor %}
+                </p>
+                <p class="score">Score: {{ computer_score }}</p>
+            {% else %}
+                <p class="cards">
+                    <img src="{% static 'cards/back.png' %}" alt="Back">
+                    <img src="{% static 'cards/back.png' %}" alt="Back">
+                    <img src="{% static 'cards/back.png' %}" alt="Back">
+                </p>
+            {% endif %}
+            <p>Current Bet: {{ computer_hand.bet }}</p>
+        </div>
 
-    <div class="player computer {% if not computer_hand.is_active %}inactive{% endif %}">
-        <h2>Компютър</h2>
-        <p class="chips">Чипове: {{ computer_hand.player.chips }}</p>
-        {% if game.stage == 'showdown' or game.stage == 'svara' %}
-            <p class="cards">Карти: {% for card in computer_hand.cards.all %}{{ card }} {% endfor %}</p>
-            <p class="score">Точки: {{ computer_score }}</p>
-        {% else %}
-            <p class="cards">Карти: [Скрити]</p>
-        {% endif %}
-        <p>Текущ залог: {{ computer_hand.bet }}</p>
-    </div>
+        <div class="pot">Pot: {{ game.pot }} chips {% if dark_bet > 0 %}(Dark Bet: {{ dark_bet }}){% endif %}</div>
 
-    <div class="pot">Пот: {{ game.pot }} чипа {% if dark_bet > 0 %}(Залог на тъмно: {{ dark_bet }}){% endif %}</div>
-
-    <div class="player you {% if not your_hand.is_active %}inactive{% endif %}">
-        <h2>Ти</h2>
-        <p class="chips">Чипове: {{ your_hand.player.chips }}</p>
-        <p class="cards">Карти: {% if game.stage != 'pre_bet' and game.stage != 'pre_bet_computer' %}{% for card in your_hand.cards.all %}{{ card }} {% endfor %}{% else %}[Скрити]{% endif %}</p>
-        {% if game.stage == 'showdown' or game.stage == 'svara' %}
-            <p class="score">Точки: {{ your_score }}</p>
-        {% endif %}
-        <p>Текущ залог: {{ your_hand.bet }}</p>
-
-        {% if game.stage == 'pre_bet' %}
-            <form method="post">
+        {% if game.stage == 'showdown' and not svara %}
+            {% if winner %}
+                <p class="winner">Winner: {{ winner }} (Takes {{ game.pot }} chips)</p>
+            {% else %}
+                <p class="winner">Tie!</p>
+            {% endif %}
+        {% elif game.stage == 'svara' %}
+            <p class="winner">Svara! Entry Fee: {{ svara_entry_fee }} chips</p>
+            <form method="post" style="text-align: center;">
                 {% csrf_token %}
-                <input type="number" name="bet" min="0" max="{{ your_hand.player.chips }}" placeholder="Залог на тъмно" required>
-                <button type="submit" name="action" value="dark_bet">Заложи на тъмно</button>
-                <button type="submit" name="action" value="skip">Продължи</button>
-            </form>
-        {% elif game.stage == 'betting' and your_hand.is_active %}
-            <form method="post">
-                {% csrf_token %}
-                <input type="number" name="bet" min="{{ min_bet }}" max="{{ your_hand.player.chips }}" placeholder="Залог" required>
-                <button type="submit" name="action" value="bet">Заложи</button>
-                <button type="submit" name="action" value="fold">Откажи се</button>
+                <button type="submit" name="action" value="join_svara">Join Svara</button>
             </form>
         {% endif %}
-    </div>
 
-    {% if game.stage == 'showdown' and not svara %}
-        {% if winner %}
-            <p class="winner">Победител: {{ winner }} (Взима {{ game.pot }} чипа)</p>
-        {% else %}
-            <p class="winner">Равенство!</p>
-        {% endif %}
-    {% elif game.stage == 'svara' %}
-        <p class="winner">Свара! Мiza за участие: {{ svara_entry_fee }} чипа</p>
-        <form method="post" style="text-align: center;">
-            {% csrf_token %}
-            <button type="submit" name="action" value="join_svara">Участвай в сварката</button>
-        </form>
-    {% endif %}
+        <div class="player you {% if not your_hand.is_active %}inactive{% endif %}">
+            <h2>You</h2>
+            {% if game.stage != 'pre_bet' and game.stage != 'pre_bet_computer' %}
+                <p class="cards">
+                    {% for card in your_hand.cards.all %}
+                        {% if card.suit == '♠' %}
+                            {% with suit_code='s' %}
+                                <img src="{% static 'cards/'|add:card.rank|add:suit_code|lower|add:'.png' %}" alt="{{ card }}">
+                            {% endwith %}
+                        {% elif card.suit == '♥' %}
+                            {% with suit_code='h' %}
+                                <img src="{% static 'cards/'|add:card.rank|add:suit_code|lower|add:'.png' %}" alt="{{ card }}">
+                            {% endwith %}
+                        {% elif card.suit == '♦' %}
+                            {% with suit_code='d' %}
+                                <img src="{% static 'cards/'|add:card.rank|add:suit_code|lower|add:'.png' %}" alt="{{ card }}">
+                            {% endwith %}
+                        {% elif card.suit == '♣' %}
+                            {% with suit_code='c' %}
+                                <img src="{% static 'cards/'|add:card.rank|add:suit_code|lower|add:'.png' %}" alt="{{ card }}">
+                            {% endwith %}
+                        {% endif %}
+                    {% endfor %}
+                </p>
+            {% else %}
+                <p class="cards">Cards: [Hidden]</p>
+            {% endif %}
+            {% if game.stage == 'showdown' or game.stage == 'svara' %}
+                <p class="score">Score: {{ your_score }}</p>
+            {% endif %}
+
+            <div class="mini-menu">
+                <p class="chips">Chips: {{ your_hand.player.chips }}</p>
+                <p>Current Bet: {{ your_hand.bet }}</p>
+                {% if game.stage == 'pre_bet' %}
+                    <form method="post">
+                        {% csrf_token %}
+                        <input type="number" name="bet" min="0" max="{{ your_hand.player.chips }}" placeholder="Dark Bet" required>
+                        <button type="submit" name="action" value="dark_bet">Place Dark Bet</button>
+                        <button type="submit" name="action" value="skip">Continue</button>
+                    </form>
+                {% elif game.stage == 'betting' and your_hand.is_active %}
+                    <form method="post">
+                        {% csrf_token %}
+                        <input type="number" name="bet" min="{{ min_bet }}" max="{{ your_hand.player.chips }}" placeholder="Bet" required>
+                        <button type="submit" name="action" value="bet">Bet</button>
+                        <button type="submit" name="action" value="fold">Fold</button>
+                    </form>
+                {% endif %}
+            </div>
+        </div>
+    </div>
 </body>
 </html>

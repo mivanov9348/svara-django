@@ -206,4 +206,9 @@ def game_view(request, game_id):
                 game.save()
             return redirect('game_view', game_id=game.id)
 
+    for card in your_hand.cards.all():
+        print(f"Your card: {card.rank}{card.suit}")
+    for card in computer_hand.cards.all():
+        print(f"Computer card: {card.rank}{card.suit}")
+
     return render(request, 'game/game.html', context)
