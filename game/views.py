@@ -8,26 +8,37 @@ def home(request):
 
 def start_game(request):
     if request.method == 'POST':
+        try:
+            starting_chips = int(request.POST.get('starting_chips', 100))
+            starting_chips = max(50, min(starting_chips, 1000))
+        except (ValueError, TypeError):
+            starting_chips = 100
+
         Player.objects.all().delete()
         Game.objects.all().delete()
         PlayerHand.objects.all().delete()
-        you = Player.objects.create(name='You', chips=100)
-        computer = Player.objects.create(name='Computer', chips=100)
+
+        you = Player.objects.create(name='You', chips=starting_chips)
+        computer = Player.objects.create(name='Computer', chips=starting_chips)
+
         deck = list(Card.objects.all())
         if not deck:
             for rank, _ in Card.RANKS:
                 for suit, _ in Card.SUITS:
                     Card.objects.create(rank=rank, suit=suit)
             deck = list(Card.objects.all())
+
         game = Game.objects.create(dealer=you, stage='dark_bet', pot=0, next_player=computer)
         your_hand = PlayerHand.objects.create(player=you, game=game)
         computer_hand = PlayerHand.objects.create(player=computer, game=game)
+
         your_cards = random.sample(deck, 3)
         your_hand.cards.set(your_cards)
         for card in your_cards:
             deck.remove(card)
         computer_cards = random.sample(deck, 3)
         computer_hand.cards.set(computer_cards)
+
         return redirect('game_view', game_id=game.id)
     return redirect('home')
 
@@ -35,10 +46,10 @@ def game_view(request, game_id):
     game = Game.objects.get(id=game_id)
     your_hand = PlayerHand.objects.get(game=game, player__name='You')
     computer_hand = PlayerHand.objects.get(game=game, player__name='Computer')
-    min_bet = game.dark_bet * 2 if game.dark_bet > 0 else max(your_hand.bet, computer_hand.bet)
+    min_bet = max(game.dark_bet * 2, computer_hand.bet) if game.dark_bet > 0 else computer_hand.bet
     svara_entry_fee = game.svara_pot // 2 if hasattr(game, 'svara_pot') and game.svara_pot > 0 else 0
 
-    your_score = calculate_points(your_hand.cards.all()) if game.stage in ['showdown', 'svara'] else None
+    your_score = calculate_points(your_hand.cards.all()) if game.stage != 'dark_bet' else None
     computer_score = calculate_points(computer_hand.cards.all()) if game.stage in ['showdown', 'svara'] else None
 
     context = {
@@ -62,7 +73,7 @@ def game_view(request, game_id):
 
             if action == 'dark_bet' and bet_amount <= your_hand.player.chips and bet_amount > 0:
                 if game.dark_bet > 0 and bet_amount < game.dark_bet * 2:
-                    bet_amount = game.dark_bet * 2  # Enforce minimum double
+                    bet_amount = game.dark_bet * 2
                 your_hand.bet = bet_amount
                 your_hand.player.chips -= bet_amount
                 game.pot += bet_amount
@@ -101,10 +112,17 @@ def game_view(request, game_id):
 
             if action == 'fold':
                 your_hand.is_active = False
+                game.stage = 'showdown'
+            elif action == 'call':
+                additional_bet = computer_hand.bet - your_hand.bet
+                if additional_bet > 0 and your_hand.player.chips >= additional_bet:
+                    your_hand.bet = computer_hand.bet
+                    your_hand.player.chips -= additional_bet
+                    game.pot += additional_bet
+                    your_hand.player.save()
+                game.stage = 'showdown' if your_hand.bet == computer_hand.bet else 'betting'
                 game.next_player = computer_hand.player
-            elif action == 'bet' and bet_amount <= your_hand.player.chips:
-                if game.dark_bet > 0 and bet_amount < game.dark_bet * 2:
-                    bet_amount = game.dark_bet * 2
+            elif action == 'bet' and bet_amount <= your_hand.player.chips and bet_amount > computer_hand.bet:
                 additional_bet = bet_amount - your_hand.bet
                 your_hand.bet = bet_amount
                 your_hand.player.chips -= additional_bet
@@ -115,21 +133,22 @@ def game_view(request, game_id):
             game.save()
             return redirect('game_view', game_id=game.id)
         elif game.next_player == computer_hand.player and computer_hand.is_active:
-            action, bet, message = computer_betting_decision(computer_hand, game,
-                                                             your_hand.bet if your_hand.bet > 0 else game.dark_bet * 2)
+            action, bet, message = computer_betting_decision(computer_hand, game, your_hand.bet)
             context['computer_message'] = message
             if action == 'fold':
                 computer_hand.is_active = False
+                game.stage = 'showdown'
             elif action == 'bet':
                 additional_bet = bet - computer_hand.bet
-                computer_hand.bet = bet
-                computer_hand.player.chips -= additional_bet
-                game.pot += additional_bet
-                computer_hand.player.save()
+                if additional_bet > 0 and computer_hand.player.chips >= additional_bet:
+                    computer_hand.bet = bet
+                    computer_hand.player.chips -= additional_bet
+                    game.pot += additional_bet
+                    computer_hand.player.save()
+                game.next_player = your_hand.player
             computer_hand.save()
-            game.next_player = your_hand.player
             game.save()
-            if not your_hand.is_active or not computer_hand.is_active or your_hand.bet == computer_hand.bet:
+            if your_hand.bet == computer_hand.bet or not computer_hand.is_active:
                 game.stage = 'showdown'
                 game.save()
             return redirect('game_view', game_id=game.id)

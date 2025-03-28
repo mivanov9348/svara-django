@@ -116,6 +116,8 @@
     .mini-menu button:hover { background-color: #2980b9; }
     .mini-menu button[name="action"][value="fold"] { background-color: #e74c3c; }
     .mini-menu button[name="action"][value="fold"]:hover { background-color: #c0392b; }
+    .mini-menu button[name="action"][value="call"] { background-color: #2ecc71; }
+    .mini-menu button[name="action"][value="call"]:hover { background-color: #27ae60; }
     .computer-message {
         font-style: italic;
         color: #bdc3c7;
@@ -127,7 +129,7 @@
         text-align: center;
         margin: 20px 0;
     }
-</style>
+    </style>
 </head>
 <body>
     <div class="game-container">
@@ -200,7 +202,7 @@
                     Cards: [Hidden until betting starts]
                 {% endif %}
             </p>
-            {% if game.stage == 'showdown' or game.stage == 'svara' %}
+            {% if game.stage != 'dark_bet' %}
                 <p class="score">Score: {{ your_score }}</p>
             {% endif %}
             <div class="mini-menu">
@@ -216,8 +218,9 @@
                 {% elif game.stage == 'betting' and game.next_player == your_hand.player and your_hand.is_active %}
                     <form method="post">
                         {% csrf_token %}
-                        <input type="number" name="bet" min="{{ min_bet }}" max="{{ your_hand.player.chips }}" placeholder="Bet" required>
-                        <button type="submit" name="action" value="bet">Bet</button>
+                        <input type="number" name="bet" min="{{ min_bet }}" max="{{ your_hand.player.chips }}" placeholder="Raise Amount">
+                        <button type="submit" name="action" value="bet">Raise</button>
+                        <button type="submit" name="action" value="call">Call</button>
                         <button type="submit" name="action" value="fold">Fold</button>
                     </form>
                 {% endif %}

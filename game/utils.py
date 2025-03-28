@@ -37,6 +37,30 @@ def computer_dark_bet_decision(computer_hand, game):
             return 'dark_bet', bet, "Computer doubles the dark bet!"
     return 'skip', 0, "Computer skips the dark bet."
 
+def start_new_round(game):
+    you = game.players.get(name='You')
+    computer = game.players.get(name='Computer')
+    if you.chips <= 0 or computer.chips <= 0:
+        return False
+    PlayerHand.objects.filter(game=game).delete()
+    game.dealer = computer if game.dealer == you else you
+    game.stage = 'dark_bet'
+    game.pot = 0
+    game.dark_bet = 0
+    game.svara_pot = 0
+    game.next_player = you if game.dealer == computer else computer  # Non-dealer bets first
+    game.save()
+    deck = list(Card.objects.all())
+    your_hand = PlayerHand.objects.create(player=you, game=game)
+    computer_hand = PlayerHand.objects.create(player=computer, game=game)
+    your_cards = random.sample(deck, 3)
+    your_hand.cards.set(your_cards)
+    for card in your_cards:
+        deck.remove(card)
+    computer_cards = random.sample(deck, 3)
+    computer_hand.cards.set(computer_cards)
+    return True
+
 def computer_betting_decision(computer_hand, game, min_bet):
     points = calculate_points(computer_hand.cards.all())
     chips = computer_hand.player.chips
@@ -62,33 +86,11 @@ def computer_betting_decision(computer_hand, game, min_bet):
     if aggression == 0 and min_bet > chips * 0.1:
         return 'fold', 0, message
     elif min_bet > 0 and chips >= min_bet:
+        if random.random() < 0.5:  # 50% chance to call instead of raise
+            return 'bet', min_bet, "Computer calls calmly."
         bet = max(min_bet, int(chips * aggression))
-        return 'bet', min(bet, chips), message if aggression > 0 else "Computer calls calmly."
+        return 'bet', min(bet, chips), message
     elif aggression > 0 and chips > 0:
         bet = int(chips * aggression)
         return 'bet', min(bet, chips), message
     return 'fold', 0, message
-
-def start_new_round(game):
-    you = game.players.get(name='You')
-    computer = game.players.get(name='Computer')
-    if you.chips <= 0 or computer.chips <= 0:
-        return False
-    PlayerHand.objects.filter(game=game).delete()
-    game.dealer = computer if game.dealer == you else you
-    game.stage = 'dark_bet'
-    game.pot = 0
-    game.dark_bet = 0
-    game.svara_pot = 0
-    game.next_player = you if game.dealer == computer else computer  # Non-dealer bets first
-    game.save()
-    deck = list(Card.objects.all())
-    your_hand = PlayerHand.objects.create(player=you, game=game)
-    computer_hand = PlayerHand.objects.create(player=computer, game=game)
-    your_cards = random.sample(deck, 3)
-    your_hand.cards.set(your_cards)
-    for card in your_cards:
-        deck.remove(card)
-    computer_cards = random.sample(deck, 3)
-    computer_hand.cards.set(computer_cards)
-    return True
