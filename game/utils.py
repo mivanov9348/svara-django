@@ -29,11 +29,11 @@ def calculate_points(cards):
 def computer_dark_bet_decision(computer_hand, game):
     chips = computer_hand.player.chips
     if game.dark_bet == 0 and random.random() < 0.5:  # 50% chance to dark bet
-        bet = min(10, chips)  # Small initial dark bet
+        bet = game.min_bet  # Минимален залог
         return 'dark_bet', bet, "Computer bets blindly with confidence!"
     elif game.dark_bet > 0 and chips >= game.dark_bet * 2:
         if random.random() < 0.7:  # 70% chance to double
-            bet = game.dark_bet * 2
+            bet = game.dark_bet * 2  # Удвоява предишния залог
             return 'dark_bet', bet, "Computer doubles the dark bet!"
     return 'skip', 0, "Computer skips the dark bet."
 
@@ -89,8 +89,10 @@ def computer_betting_decision(computer_hand, game, min_bet):
         if random.random() < 0.5:  # 50% chance to call instead of raise
             return 'bet', min_bet, "Computer calls calmly."
         bet = max(min_bet, int(chips * aggression))
+        bet = (bet // game.min_bet) * game.min_bet  # Закръгляме надолу до най-близкото кратно на game.min_bet
         return 'bet', min(bet, chips), message
     elif aggression > 0 and chips > 0:
         bet = int(chips * aggression)
+        bet = max(game.min_bet, (bet // game.min_bet) * game.min_bet)  # Уверете се, че е поне минималния залог
         return 'bet', min(bet, chips), message
     return 'fold', 0, message

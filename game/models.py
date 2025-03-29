@@ -31,6 +31,7 @@ class Game(models.Model):
     dealer = models.ForeignKey(Player, on_delete=models.SET_NULL, null=True, related_name='dealt_games')
     next_player = models.ForeignKey(Player, on_delete=models.SET_NULL, null=True, related_name='next_to_bet', default=None)
     stage = models.CharField(max_length=20, choices=STAGE_CHOICES, default='dark_bet')
+    min_bet = models.IntegerField(default=5)
 
 class PlayerHand(models.Model):
     player = models.ForeignKey(Player, on_delete=models.CASCADE)

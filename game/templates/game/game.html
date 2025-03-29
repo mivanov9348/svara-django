@@ -211,16 +211,25 @@
                 {% if game.stage == 'dark_bet' and game.next_player == your_hand.player and your_hand.is_active %}
                     <form method="post">
                         {% csrf_token %}
-                        <input type="number" name="bet" min="{% if game.dark_bet > 0 %}{{ game.dark_bet|add:game.dark_bet }}{% else %}0{% endif %}" max="{{ your_hand.player.chips }}" placeholder="Dark Bet" required>
+                        <input type="number" name="bet" min="{% if game.dark_bet > 0 %}{{ game.dark_bet|add:game.dark_bet }}{% else %}{{ game.min_bet }}{% endif %}" max="{{ your_hand.player.chips }}" step="{{ game.min_bet }}" placeholder="Dark Bet">
                         <button type="submit" name="action" value="dark_bet">Dark Bet</button>
+                    </form>
+                    <form method="post">
+                        {% csrf_token %}
                         <button type="submit" name="action" value="skip">Skip</button>
                     </form>
                 {% elif game.stage == 'betting' and game.next_player == your_hand.player and your_hand.is_active %}
                     <form method="post">
                         {% csrf_token %}
-                        <input type="number" name="bet" min="{{ min_bet }}" max="{{ your_hand.player.chips }}" placeholder="Raise Amount">
+                        <input type="number" name="bet" min="{{ min_bet }}" max="{{ your_hand.player.chips }}" step="{{ game.min_bet }}" placeholder="Raise Amount">
                         <button type="submit" name="action" value="bet">Raise</button>
+                    </form>
+                    <form method="post">
+                        {% csrf_token %}
                         <button type="submit" name="action" value="call">Call</button>
+                    </form>
+                    <form method="post">
+                        {% csrf_token %}
                         <button type="submit" name="action" value="fold">Fold</button>
                     </form>
                 {% endif %}
